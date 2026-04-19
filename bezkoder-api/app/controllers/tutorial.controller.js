@@ -1,6 +1,7 @@
 const db = require("../models");
 const Tutorial = db.tutorials;
 const Op = db.Sequelize.Op;
+const sequelize = db.sequelize;
 
 // Create and Save a new Tutorial
 exports.create = (req, res) => {
@@ -35,9 +36,49 @@ exports.create = (req, res) => {
 // Retrieve all Tutorials from the database.
 exports.findAll = (req, res) => {
   const title = req.query.title;
-  var condition = title ? { title: { [Op.like]: `%${title}%` } } : null;
+  const status = req.query.status;
+  const minDescriptionLength = req.query.minDescriptionLength;
+  const sortBy = req.query.sortBy;
 
-  Tutorial.findAll({ where: condition })
+  var conditions = {};
+  var andConditions = [];
+
+  if (title) {
+    andConditions.push({ title: { [Op.like]: `%${title}%` } });
+  }
+
+  if (status === "published") {
+    andConditions.push({ published: true });
+  } else if (status === "unpublished") {
+    andConditions.push({ published: false });
+  }
+
+  if (minDescriptionLength && !isNaN(parseInt(minDescriptionLength))) {
+    const length = parseInt(minDescriptionLength);
+    andConditions.push(
+      sequelize.where(
+        sequelize.fn('CHAR_LENGTH', sequelize.col('description')),
+        '>=',
+        length
+      )
+    );
+  }
+
+  if (andConditions.length > 0) {
+    conditions = { [Op.and]: andConditions };
+  }
+
+  var findOptions = {
+    where: Object.keys(conditions).length > 0 ? conditions : undefined
+  };
+
+  if (sortBy === "oldest") {
+    findOptions.order = [['createdAt', 'ASC']];
+  } else {
+    findOptions.order = [['createdAt', 'DESC']];
+  }
+
+  Tutorial.findAll(findOptions)
     .then(data => {
       res.send(data);
     })

@@ -1,8 +1,16 @@
 import http from "../http-common";
 
 class TutorialDataService {
-  getAll() {
-    return http.get("/tutorials");
+  getAll(params = {}) {
+    const queryParams = new URLSearchParams();
+    if (params.title) queryParams.append("title", params.title);
+    if (params.status) queryParams.append("status", params.status);
+    if (params.minDescriptionLength)
+      queryParams.append("minDescriptionLength", params.minDescriptionLength);
+    if (params.sortBy) queryParams.append("sortBy", params.sortBy);
+
+    const queryString = queryParams.toString();
+    return http.get(`/tutorials${queryString ? `?${queryString}` : ""}`);
   }
 
   get(id) {
