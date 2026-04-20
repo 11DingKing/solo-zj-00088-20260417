@@ -36,12 +36,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
+const dbConfig = require("./app/config/db.config");
 
-db.sequelize.sync();
-// // drop the table if it already exists
-// db.sequelize.sync({ force: true }).then(() => {
-//   console.log("Drop and re-sync db.");
-// });
+console.log("Database Configuration:");
+console.log("  Host:", dbConfig.HOST);
+console.log("  Port:", dbConfig.port);
+console.log("  User:", dbConfig.USER);
+console.log("  Database:", dbConfig.DB);
+
+db.sequelize
+  .authenticate()
+  .then(() => {
+    console.log("✓ Database connection established successfully.");
+    return db.sequelize.sync();
+  })
+  .then(() => {
+    console.log("✓ Database synchronized successfully. Tables created/verified.");
+  })
+  .catch(err => {
+    console.error("✗ Database connection/sync failed:");
+    console.error("  Error:", err.message);
+    console.error("  Please ensure MySQL is running and the database exists.");
+  });
 
 // simple route
 app.get("/", (req, res) => {
