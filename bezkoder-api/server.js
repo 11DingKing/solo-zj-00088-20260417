@@ -5,7 +5,26 @@ const cors = require("cors");
 const app = express();
 
 var corsOptions = {
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:8081"
+  origin: function (origin, callback) {
+    const allowedOrigins = [
+      process.env.CLIENT_ORIGIN,
+      "http://localhost:8888",
+      "http://127.0.0.1:8888",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:8080",
+      "http://127.0.0.1:8080"
+    ].filter(Boolean);
+    
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log("Blocked CORS request from:", origin);
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
 };
 
 app.use(cors(corsOptions));
