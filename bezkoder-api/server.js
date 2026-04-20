@@ -28,18 +28,23 @@ var corsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// parse requests of content-type - application/json
 app.use(express.json());
-
-// parse requests of content-type - application/x-www-form-urlencoded
 app.use(express.urlencoded({ extended: true }));
 
 const db = require("./app/models");
 const dbConfig = require("./app/config/db.config");
 const Tutorial = db.tutorials;
 
+require("./app/routes/turorial.routes")(app);
+
+app.get("/", (req, res) => {
+  res.json({ message: "Welcome to bezkoder application." });
+});
+
+const FORCE_SYNC = false;
+
 console.log("==================================");
+console.log("Starting Server...");
 console.log("Database Configuration:");
 console.log("  Host:", dbConfig.HOST);
 console.log("  Port:", dbConfig.port);
@@ -47,26 +52,26 @@ console.log("  User:", dbConfig.USER);
 console.log("  Database:", dbConfig.DB);
 console.log("==================================");
 
-const FORCE_SYNC = false;
-
-db.sequelize
-  .authenticate()
-  .then(() => {
+async function startServer() {
+  try {
+    console.log("→ Connecting to database...");
+    await db.sequelize.authenticate();
     console.log("✓ Database connection established successfully.");
-    return db.sequelize.sync({ force: FORCE_SYNC });
-  })
-  .then(() => {
-    console.log("✓ Database synchronized successfully. Tables created/verified.");
+
+    console.log("→ Synchronizing tables...");
+    await db.sequelize.sync({ force: FORCE_SYNC });
+    console.log("✓ Database synchronized successfully.");
+    
     if (FORCE_SYNC) {
       console.log("⚠️  Warning: Tables were recreated (force: true)");
     }
-    return Tutorial.count();
-  })
-  .then(count => {
+
+    const count = await Tutorial.count();
     console.log(`✓ Current tutorials count: ${count}`);
+
     if (count === 0) {
       console.log("→ Creating sample data...");
-      return Tutorial.bulkCreate([
+      const sampleTutorials = [
         {
           title: "React Basics",
           description: "Learn the fundamentals of React including components, props, state, and lifecycle methods. This comprehensive tutorial will guide you through building your first React application from scratch.",
@@ -92,38 +97,39 @@ db.sequelize
           description: "Master CSS Flexbox layout for responsive web design.",
           published: false
         }
-      ]);
+      ];
+      await Tutorial.bulkCreate(sampleTutorials);
+      console.log(`✓ Created ${sampleTutorials.length} sample tutorials`);
     }
-    return null;
-  })
-  .then(created => {
-    if (created) {
-      console.log(`✓ Created ${created.length} sample tutorials`);
-    }
-  })
-  .catch(err => {
+
+    const PORT = process.env.NODE_DOCKER_PORT || 8080;
+    app.listen(PORT, () => {
+      console.log("==================================");
+      console.log(`✓ Server is running on port ${PORT}.`);
+      console.log("✓ Ready to accept requests.");
+      console.log("==================================");
+    });
+
+  } catch (err) {
     console.error("==================================");
-    console.error("✗ Database Error:");
+    console.error("✗ FATAL ERROR: Failed to start server");
+    console.error("==================================");
+    console.error("Error details:");
     console.error("  Message:", err.message);
+    console.error("  Name:", err.name);
+    if (err.original) {
+      console.error("  Original:", err.original.message);
+    }
     console.error("==================================");
     console.error("\nPossible solutions:");
     console.error("1. Ensure MySQL server is running");
     console.error("2. Ensure database 'bezkoder_db' exists");
-    console.error("   - Run: CREATE DATABASE IF NOT EXISTS bezkoder_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
+    console.error("   - Run in MySQL: CREATE DATABASE IF NOT EXISTS bezkoder_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;");
     console.error("3. Check database credentials in .env file");
-    console.error("4. If using Docker: run 'docker-compose up --build'");
+    console.error("4. If using Docker: run 'docker-compose down && docker-compose up --build'");
     console.error("==================================");
-  });
+    process.exit(1);
+  }
+}
 
-// simple route
-app.get("/", (req, res) => {
-  res.json({ message: "Welcome to bezkoder application." });
-});
-
-require("./app/routes/turorial.routes")(app);
-
-// set port, listen for requests
-const PORT = process.env.NODE_DOCKER_PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}.`);
-});
+startServer();
