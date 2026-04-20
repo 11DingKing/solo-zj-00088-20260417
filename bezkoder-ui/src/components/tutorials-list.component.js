@@ -16,8 +16,29 @@ function debounce(func, wait) {
 
 class TutorialsList extends Component {
   constructor(props) {
-    super(props);,
+    super(props);
+    this.state = {
+      tutorials: [],
+      currentTutorial: null,
+      currentIndex: -1,
+      searchTitle: "",
+      status: "",
+      sortBy: "newest",
+      minDescriptionLength: 0
     };
+
+    this.onChangeSearchTitle = this.onChangeSearchTitle.bind(this);
+    this.onChangeStatus = this.onChangeStatus.bind(this);
+    this.onChangeSortBy = this.onChangeSortBy.bind(this);
+    this.onChangeMinDescriptionLength = this.onChangeMinDescriptionLength.bind(this);
+    this.retrieveTutorials = this.retrieveTutorials.bind(this);
+    this.refreshList = this.refreshList.bind(this);
+    this.setActiveTutorial = this.setActiveTutorial.bind(this);
+    this.removeAllTutorials = this.removeAllTutorials.bind(this);
+    this.searchTitle = this.searchTitle.bind(this);
+    this.resetFilters = this.resetFilters.bind(this);
+    this.hasActiveFilters = this.hasActiveFilters.bind(this);
+    this.renderEmptyState = this.renderEmptyState.bind(this);
   }
 
   componentDidMount() {
@@ -26,73 +47,23 @@ class TutorialsList extends Component {
 
   onChangeSearchTitle(e) {
     const searchTitle = e.target.value;
+    this.setState({ searchTitle: searchTitle });
+  }
 
-    this.setState({
-      searchTitle: searchTitle,
-    });
+  onChangeStatus(e) {
+    this.setState({ status: e.target.value });
+  }
+
+  onChangeSortBy(e) {
+    this.setState({ sortBy: e.target.value });
+  }
+
+  onChangeMinDescriptionLength(e) {
+    this.setState({ minDescriptionLength: parseInt(e.target.value) });
   }
 
   retrieveTutorials() {
-    TutorialDataService.getAll()
-      .then((response) => {
-        this.setState({
-          tutorials: response.data,
-        });
-        console.log(response.data);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-  }
-
-  refreshList() {
-    this.retrieveTutorials();
-    this.setState({
-      currentTutorial: null,
-      currentIndex: -1,
-    });
-  }
-
-  setActiveTutorial(tutorial, index) {
-    this.setState({
-      currentTutorial: tutorial,
-      currentIndex: index,
-    });
-  }
-
-  removeAllTutorials() {
-    TutorialDataService.deleteAll()
-      .then((response) => {
-        console.log(response.data);
-        this.refreshList();
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-  }
-
-  searchTitle() {
-    this.setState({
-      currentTutorial: null,
-      currentIndex: -1,
-    });
-
-    TutorialDataService.findByTitle(this.state.searchTitle)
-      .then((response) => {
-        this.setState({
-          tutorials: response.data,
-        });
-        console.log(response.data);
-      })
-      .catch((e) => {
-        console.log(e);
-      });
-  }
-
-  render() {
-    const { searchTitle, tutorials, currentTutorial, currentIndex } =
-     s.state;
-    
+    const { searchTitle, status, sortBy, minDescriptionLength } = this.state;
     const params = {};
     if (searchTitle) params.title = searchTitle;
     if (status) params.status = status;
@@ -100,7 +71,7 @@ class TutorialsList extends Component {
     if (minDescriptionLength > 0) params.minDescriptionLength = minDescriptionLength;
 
     TutorialDataService.getAll(params)
-      .then(response => {
+      .then((response) => {
         this.setState({
           tutorials: response.data,
           currentTutorial: null,
@@ -108,7 +79,7 @@ class TutorialsList extends Component {
         });
         console.log(response.data);
       })
-      .catch(e => {
+      .catch((e) => {
         console.log(e);
       });
   }
@@ -130,11 +101,29 @@ class TutorialsList extends Component {
 
   removeAllTutorials() {
     TutorialDataService.deleteAll()
-      .then(response => {
+      .then((response) => {
         console.log(response.data);
         this.refreshList();
       })
-      .catch(e => {
+      .catch((e) => {
+        console.log(e);
+      });
+  }
+
+  searchTitle() {
+    this.setState({
+      currentTutorial: null,
+      currentIndex: -1
+    });
+
+    TutorialDataService.findByTitle(this.state.searchTitle)
+      .then((response) => {
+        this.setState({
+          tutorials: response.data
+        });
+        console.log(response.data);
+      })
+      .catch((e) => {
         console.log(e);
       });
   }
